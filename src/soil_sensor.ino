@@ -28,8 +28,8 @@
 #define INTERVAL_MS 2000           // 計測間隔（ミリ秒）
 
 // RS485 UART設定
-#define RS485_RX_PIN 6             // RX ピン
-#define RS485_TX_PIN 5             // TX ピン
+#define RS485_RX_PIN 5             // RX ピン
+#define RS485_TX_PIN 6             // TX ピン
 
 // Modbusレジスタアドレス
 #define REG_MOISTURE 0x0000        // 土壌水分 (0-100%)
