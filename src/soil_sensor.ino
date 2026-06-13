@@ -21,7 +21,6 @@
 
 #include <M5Unified.h>
 #include <ModbusMaster.h>
-#include <HardwareSerial.h>
 
 // ===== 設定値 =====
 #define SERIAL_BAUD 9600          // RS485シリアル通信速度
@@ -40,7 +39,6 @@
 #define REG_PH 0x0003              // pH値 (0-14)
 
 // ===== グローバル変数 =====
-HardwareSerial RS485Serial(1);     // UART_NUM_1
 ModbusMaster node;
 unsigned long lastReadTime = 0;
 
@@ -195,7 +193,7 @@ void setup() {
   
   // ディスプレイ初期化
   auto& display = M5.Display;
-  display.setRotation(1);
+  display.setRotation(0);
   display.fillScreen(TFT_BLACK);
   display.setTextSize(1);
   display.setTextColor(TFT_WHITE);
@@ -210,12 +208,12 @@ void setup() {
   M5_LOGI("RX Pin: 5, TX Pin: 6");
   
   // RS485 UART初期化
-  RS485Serial.begin(SERIAL_BAUD, SERIAL_8N1, RS485_RX_PIN, RS485_TX_PIN);
+  Serial1.begin(SERIAL_BAUD, SERIAL_8N1, RS485_RX_PIN, RS485_TX_PIN);
   pinMode(RS485_TXE_PIN, OUTPUT);
   digitalWrite(RS485_TXE_PIN, LOW); // 初期状態は受信待ち
 
   // ModbusMaster初期化
-  node.begin(SENSOR_ADDRESS, RS485Serial);
+  node.begin(SENSOR_ADDRESS, Serial1);
   node.preTransmission(preTransmission);
   node.postTransmission(postTransmission);
   
