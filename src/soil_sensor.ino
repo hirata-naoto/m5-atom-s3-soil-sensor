@@ -6,8 +6,8 @@
  * 画面表示対応
  * 
  * ピン配置 (M5 Atom S3):
- *   GPIO 5 (TX) -> RS485 DI (Data In)
- *   GPIO 6 (RX) -> RS485 RO (Data Out)
+ *   GPIO 6 (TX) -> RS485 DI (Data In)
+ *   GPIO 5 (RX) -> RS485 RO (Data Out)
  *   5V -> RS485 VCC
  *   GND -> RS485 GND
  * 
@@ -32,7 +32,7 @@
 #define RS485_TX_PIN 6             // TX ピン
 
 // Modbusレジスタアドレス
-#define REG_MOISTURE 0x0000        // 土壌水分 (0-100%)
+#define REG_MOISTURE 0x0000        // 土���水分 (0-100%)
 #define REG_TEMPERATURE 0x0001     // 温度 (-10 ~ +60°C)
 #define REG_EC 0x0002              // EC値 (0-20 mS/cm)
 #define REG_PH 0x0003              // pH値 (0-14)
@@ -127,68 +127,37 @@ void displaySensorData() {
 
 // ===== センサー読み込み関数 =====
 bool readSensorData() {
-  bool success = true;
-  
-  // 土壌水分を読む (レジスタアドレス 0x0000)
-  uint8_t result = node.readInputRegisters(REG_MOISTURE, 1);
+  // すべてのセンサーデータを一括で読み込み (4つのレジスタ: 0x0000-0x0003)
+  uint8_t result = node.readHoldingRegisters(REG_MOISTURE, 4);
   
   if (result == node.ku8MBSuccess) {
+    // 土壌水分 (バッファインデックス 0)
     uint16_t moisture_raw = node.getResponseBuffer(0);
     sensorData.moisture = moisture_raw / 10.0;
-  } else {
-    sensorData.status = 1;
-    sensorData.errorMsg = "Moisture read failed";
-    success = false;
-  }
-  
-  delay(100); // センサーの応答待ち
-  
-  // 温度を読む (レジスタアドレス 0x0001)
-  result = node.readInputRegisters(REG_TEMPERATURE, 1);
-  
-  if (result == node.ku8MBSuccess) {
-    int16_t temp_raw = (int16_t)node.getResponseBuffer(0);
+    
+    // 温度 (バッファインデックス 1) - 符号付き
+    int16_t temp_raw = (int16_t)node.getResponseBuffer(1);
     sensorData.temperature = temp_raw / 10.0;
-  } else {
-    sensorData.status = 1;
-    sensorData.errorMsg = "Temp read failed";
-    success = false;
-  }
-  
-  delay(100);
-  
-  // EC値を読む (レジスタアドレス 0x0002)
-  result = node.readInputRegisters(REG_EC, 1);
-  
-  if (result == node.ku8MBSuccess) {
-    uint16_t ec_raw = node.getResponseBuffer(0);
+    
+    // EC値 (バッファインデックス 2)
+    uint16_t ec_raw = node.getResponseBuffer(2);
     sensorData.ec = ec_raw / 10.0;
-  } else {
-    sensorData.status = 1;
-    sensorData.errorMsg = "EC read failed";
-    success = false;
-  }
-  
-  delay(100);
-  
-  // PH値を読む (レジスタアドレス 0x0003)
-  result = node.readInputRegisters(REG_PH, 1);
-  
-  if (result == node.ku8MBSuccess) {
-    uint16_t ph_raw = node.getResponseBuffer(0);
+    
+    // PH値 (バッファインデックス 3)
+    uint16_t ph_raw = node.getResponseBuffer(3);
     sensorData.ph = ph_raw / 10.0;
-  } else {
-    sensorData.status = 1;
-    sensorData.errorMsg = "PH read failed";
-    success = false;
-  }
-  
-  if (success) {
+    
+    // ステータス更新
     sensorData.status = 0;
     sensorData.errorMsg = "";
+    
+    return true;
+  } else {
+    // エラー処理
+    sensorData.status = 1;
+    sensorData.errorMsg = "Register read failed";
+    return false;
   }
-  
-  return success;
 }
 
 // ===== シリアル出力 =====
@@ -236,7 +205,7 @@ void setup() {
   M5_LOGI("\n\n=== M5 Atom S3 Soil Sensor System ===");
   M5_LOGI("M5Unified + ModbusMaster version");
   M5_LOGI("Starting up...");
-  M5_LOGI("RX Pin: 6, TX Pin: 5");
+  M5_LOGI("RX Pin: 5, TX Pin: 6");
   
   // RS485 UART初期化
   RS485Serial.begin(SERIAL_BAUD, SERIAL_8N1, RS485_RX_PIN, RS485_TX_PIN);
@@ -246,7 +215,7 @@ void setup() {
   node.preTransmission(preTransmission);
   node.postTransmission(postTransmission);
   
-  // 画面に初期化中と表示
+  // 画面に初期化中と���示
   display.fillScreen(TFT_BLACK);
   display.setCursor(0, 0);
   display.setTextColor(TFT_BLUE);
@@ -308,7 +277,7 @@ void loop() {
  * 
  * 1. データが読めない場合:
  *    - wiring.mdの配線を確認
- *    - RX(6)/TX(5)のピンが正しいか確認
+ *    - RX(5)/TX(6)のピンが正しいか確認
  *    - センサーのボーレートが9600 bpsか確認
  * 
  * 2. 画面に表示されない場合:
