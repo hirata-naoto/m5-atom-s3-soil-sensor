@@ -61,6 +61,13 @@ void postTransmission() {
   // RS485ドライバを受信モードに設定（必要に応じて）
 }
 
+// ===== LED表示用ヘルパー関数 =====
+void setLEDColor(uint32_t color) {
+  // M5 Atom S3の内蔵LEDを指定色で点灯
+  // color: 0xRRGGBB形式
+  M5.Led.setColor(color);
+}
+
 // ===== 画面表示関数 =====
 void displaySensorData() {
   auto& display = M5.Display;
@@ -95,6 +102,9 @@ void displaySensorData() {
     
     display.setTextColor(TFT_GREEN);
     display.println("[OK]");
+    
+    // LED: 緑色
+    setLEDColor(0x00FF00);
   } else {
     // エラー表示
     display.setTextColor(TFT_RED, TFT_BLACK);
@@ -104,6 +114,9 @@ void displaySensorData() {
     display.setTextColor(TFT_WHITE);
     display.println("");
     display.println("Check wiring...");
+    
+    // LED: 赤色
+    setLEDColor(0xFF0000);
   }
   
   // 更新時刻
@@ -122,11 +135,9 @@ bool readSensorData() {
   if (result == node.ku8MBSuccess) {
     uint16_t moisture_raw = node.getResponseBuffer(0);
     sensorData.moisture = moisture_raw / 10.0;
-    M5.dis.fillpix(0x00FF00); // 成功時は緑
   } else {
     sensorData.status = 1;
     sensorData.errorMsg = "Moisture read failed";
-    M5.dis.fillpix(0xFF0000); // エラー時は赤
     success = false;
   }
   
@@ -241,9 +252,12 @@ void setup() {
   display.setTextColor(TFT_BLUE);
   display.println("Initializing...");
   
-  M5.dis.fillpix(0x0000FF); // 初期化中は青
+  // LED: 青色（初期化中）
+  setLEDColor(0x0000FF);
   delay(500);
-  M5.dis.fillpix(0x000000); // 初期状態は消灯
+  
+  // LED: オフ（初期状態）
+  setLEDColor(0x000000);
   
   M5_LOGI("Ready!");
   M5_LOGI("");
@@ -277,9 +291,13 @@ void loop() {
     // ボタン押下時は即座に計測を実行
     M5_LOGI("Button pressed! Reading sensor now...");
     lastReadTime = 0; // 次の計測をすぐに実行
-    M5.dis.fillpix(0xFFFF00); // 黄色点灯
+    
+    // LED: 黄色点灯
+    setLEDColor(0xFFFF00);
     delay(100);
-    M5.dis.fillpix(0x000000); // 消灯
+    
+    // LED: オフ
+    setLEDColor(0x000000);
   }
   
   delay(10);
