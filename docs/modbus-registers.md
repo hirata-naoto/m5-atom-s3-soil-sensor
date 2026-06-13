@@ -1,8 +1,8 @@
-# DFROBOT SENS0604 Modbus RTU レジスタ仕様
+# DFROBOT SEN0604 Modbus RTU レジスタ仕様
 
 ## センサー基本情報
 
-- **モデル**: DFROBOT SENS0604
+- **モデル**: DFROBOT SEN0604
 - **通信方式**: Modbus RTU
 - **ボーレート**: 9600 bps (デフォルト)
 - **パリティ**: None
@@ -161,4 +161,4 @@ Value: 新しいアドレス (1-247)
 
 **参考:**
 - Modbus RTU仕様: http://www.modbus.org/
-- DFROBOT SENS0604 英語ドキュメント: https://www.dfrobot.com/
+- DFROBOT SEN0604 英語ドキュメント: https://www.dfrobot.com/
