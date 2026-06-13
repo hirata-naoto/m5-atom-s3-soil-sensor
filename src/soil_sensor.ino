@@ -65,7 +65,7 @@ void postTransmission() {
 void setLEDColor(uint32_t color) {
   // M5 Atom S3の内蔵LEDを指定色で点灯
   // color: 0xRRGGBB形式
-  M5.Led.setColor(color);
+  M5.Led.setColor(0, color);
 }
 
 // ===== 画面表示関数 =====
@@ -287,7 +287,7 @@ void loop() {
   }
   
   // ボタン処理（オプション）
-  if (M5.Btn.wasPressed()) {
+  if (M5.BtnA.wasPressed()) {
     // ボタン押下時は即座に計測を実行
     M5_LOGI("Button pressed! Reading sensor now...");
     lastReadTime = 0; // 次の計測をすぐに実行
