@@ -1,12 +1,12 @@
 # M5 Atom S3 + DFROBOT SEN0604 RS485 Soil Sensor System
 
-M5 Atom S3とDFROBOT SEN0604(RS485土壌センサー)を組み合わせた土壌水分・温度測定システムです。
+M5 Atom S3とDFROBOT SEN0604(RS485土壌センサー)を組み合わせた土壌水分・温度・pH測定システムです。
 
 ## 概要
 
 - **マイコン**: M5 Atom S3
 - **センサー**: DFROBOT SEN0604 (RS485 Modbus RTU)
-- **計測項目**: 土壌水分量、温度、EC値
+- **計測項目**: 土壌水分量、温度、EC値、pH
 - **通信方式**: RS485 / Modbus RTU
 - **表示**: M5 Atom S3内蔵ディスプレイ + シリアルモニタ
 - **開発環境**: Arduino IDE (M5Unified + ModbusMaster)
@@ -58,7 +58,7 @@ M5 Atom S3とDFROBOT SEN0604(RS485土壌センサー)を組み合わせた土壌
 7. **書き込み**
    - スケッチ → マイコンボードに書き込む
    - ボード: M5Stack Atom S3
-   - ポート: 使用しているCOMポート
+   - ���ート: 使用しているCOMポート
 
 8. **動作確認**
    - M5 Atom S3の画面にセンサーデータが表示されることを確認
@@ -74,6 +74,7 @@ M5 Atom S3とDFROBOT SEN0604(RS485土壌センサー)を組み合わせた土壌
 Moisture: 65.3 %
 Temp: 28.5 C
 EC: 1.2 mS/cm
+PH: 6.8
 [OK]
 
 Last: 123
@@ -86,6 +87,7 @@ Last: 123
 Moisture: 65.3 %
 Temperature: 28.5 C
 EC: 1.2 mS/cm
+PH: 6.8
 
 ```
 
@@ -101,6 +103,7 @@ EC: 1.2 mS/cm
    - 土壌水分値をレジスタ 0x0000 から読み取り
    - 温度値をレジスタ 0x0001 から読み取り
    - EC値をレジスタ 0x0002 から読み取り
+   - pH値をレジスタ 0x0003 から読み取り
    - ディスプレイを更新
    - 成功時: LED が緑色に点灯
    - 失敗時: LED が赤色に点灯、エラーメッセージを表示
@@ -140,7 +143,8 @@ EC: 1.2 mS/cm
 | データが読めない | RS485接続が不安定 | [wiring.md](./wiring.md)の配線を確認、終端抵抗を追加 |
 | 画面に「ERROR!」表示 | Modbus通信エラー | エラーメッセージを確認、シリアルモニタで詳細確認 |
 | "ERROR: Moisture read failed" | センサーが応答しない | 電源供給確認、ケーブル接触確認 |
-| 初期化エラー | M5 Atom S3の初期化失敗 | USBケーブルの接続確認、ドライバの再インストール |
+| "ERROR: PH read failed" | pH値が読めない | センサー埋め込み深度確認、キャリブレーション確認 |
+| 初期化エラー | M5 Atom S3��初期化失敗 | USBケーブルの接続確認、ドライバの再インストール |
 | 異常な値が読める | センサー設定の問題 | センサーのアドレス確認、キャリブレーション確認 |
 
 ### Modbusエラーコード
@@ -158,7 +162,7 @@ EC: 1.2 mS/cm
 ## 参考資料
 
 - [M5 Atom S3 ドキュメント](https://docs.m5stack.com/en/core/AtomS3)
-- [DFROBOT SEN0604 仕様書](https://www.dfrobot.com/)
+- [DFROBOT SEN0604 Wiki](https://wiki.dfrobot.com/sen0604/docs/20297)
 - [Modbus RTU仕様](http://www.modbus.org/)
 - [ModbusMaster ライブラリ](https://github.com/4-20ma/ModbusMaster)
 - [M5Unified ドキュメント](https://github.com/m5stack/M5Unified)
@@ -174,4 +178,4 @@ hirata-naoto
 ---
 
 **更新日**: 2026-06-13
-**バージョン**: 2.0.0 (M5Unified + ModbusMaster版、ディスプレイ対応)
+**バージョン**: 2.1.0 (M5Unified + ModbusMaster版、ディスプレイ+PH対応)
