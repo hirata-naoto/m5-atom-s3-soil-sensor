@@ -6,8 +6,9 @@
  * 画面表示対応
  * 
  * ピン配置 (M5 Atom S3):
- *   GPIO 6 (TX) -> RS485 DI (Data In)
- *   GPIO 5 (RX) -> RS485 RO (Data Out)
+ *   GPIO 5 (RX)  -> RS485 RO (Data Out)
+ *   GPIO 6 (TX)  -> RS485 DI (Data In)
+ *   GPIO 7 (TXE) -> RS485 DE (Data Out Enable)
  *   5V -> RS485 VCC
  *   GND -> RS485 GND
  * 
@@ -28,8 +29,9 @@
 #define INTERVAL_MS 2000           // 計測間隔（ミリ秒）
 
 // RS485 UART設定
-#define RS485_RX_PIN 5             // RX ピン
-#define RS485_TX_PIN 6             // TX ピン
+#define RS485_RX_PIN  5             // RX ピン
+#define RS485_TX_PIN  6             // TX ピン
+#define RS485_TXE_PIN 7             // DE ピン
 
 // Modbusレジスタアドレス
 #define REG_MOISTURE 0x0000        // 土���水分 (0-100%)
@@ -54,11 +56,11 @@ struct SensorData {
 
 // ===== RS485プリ/ポストトランスミッション制御 =====
 void preTransmission() {
-  // RS485ドライバを送信モードに設定（必要に応じて）
+    digitalWrite(RS485_TXE_PIN, HIGH);   // RS485ドライバを送信モードに設定
 }
 
 void postTransmission() {
-  // RS485ドライバを受信モードに設定（必要に応じて）
+    digitalWrite(RS485_TXE_PIN, LOW);   // RS485ドライバを受信モードに設定
 }
 
 // ===== LED表示用ヘルパー関数 =====
@@ -209,7 +211,9 @@ void setup() {
   
   // RS485 UART初期化
   RS485Serial.begin(SERIAL_BAUD, SERIAL_8N1, RS485_RX_PIN, RS485_TX_PIN);
-  
+  pinMode(RS485_TXE_PIN, OUTPUT);
+  digitalWrite(RS485_TXE_PIN, LOW); // 初期状態は受信待ち
+
   // ModbusMaster初期化
   node.begin(SENSOR_ADDRESS, RS485Serial);
   node.preTransmission(preTransmission);
