@@ -1,7 +1,7 @@
 /*
  * M5 Atom S3 + DFROBOT SENS0604 RS485 Soil Sensor System
  * 
- * 土壌水分・温度測定システム
+ * 土壌水分・温度・pH測定システム
  * M5Unified + ModbusMasterライブラリ版
  * 画面表示対応
  * 
@@ -35,6 +35,7 @@
 #define REG_MOISTURE 0x0000        // 土壌水分 (0-100%)
 #define REG_TEMPERATURE 0x0001     // 温度 (-10 ~ +60°C)
 #define REG_EC 0x0002              // EC値 (0-20 mS/cm)
+#define REG_PH 0x0003              // pH値 (0-14)
 
 // ===== グローバル変数 =====
 HardwareSerial RS485Serial(1);     // UART_NUM_1
@@ -46,9 +47,10 @@ struct SensorData {
   float moisture;
   float temperature;
   float ec;
+  float ph;
   uint8_t status;  // 0=OK, 1=Error
   String errorMsg;
-} sensorData = {0.0, 0.0, 0.0, 0, ""};
+} sensorData = {0.0, 0.0, 0.0, 0.0, 0, ""};
 
 // ===== RS485プリ/ポストトランスミッション制御 =====
 void preTransmission() {
@@ -86,6 +88,10 @@ void displaySensorData() {
     display.print("EC: ");
     display.print(sensorData.ec);
     display.println(" mS/cm");
+    
+    display.print("PH: ");
+    display.print(sensorData.ph);
+    display.println("");
     
     display.setTextColor(TFT_GREEN);
     display.println("[OK]");
@@ -152,6 +158,20 @@ bool readSensorData() {
     success = false;
   }
   
+  delay(100);
+  
+  // PH値を読む (レジスタアドレス 0x0003)
+  result = node.readInputRegisters(REG_PH, 1);
+  
+  if (result == node.ku8MBSuccess) {
+    uint16_t ph_raw = node.getResponseBuffer(0);
+    sensorData.ph = ph_raw / 10.0;
+  } else {
+    sensorData.status = 1;
+    sensorData.errorMsg = "PH read failed";
+    success = false;
+  }
+  
   if (success) {
     sensorData.status = 0;
     sensorData.errorMsg = "";
@@ -176,6 +196,9 @@ void printSerialData() {
     Serial.print("EC: ");
     Serial.print(sensorData.ec);
     Serial.println(" mS/cm");
+    
+    Serial.print("PH: ");
+    Serial.println(sensorData.ph);
   } else {
     Serial.println("ERROR: " + sensorData.errorMsg);
   }
