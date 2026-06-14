@@ -59,6 +59,7 @@ void preTransmission() {
 
 void postTransmission() {
     Serial1.flush();
+    delay(2);
     digitalWrite(RS485_TXE_PIN, LOW);   // RS485ドライバを受信モードに設定
 }
 
@@ -73,6 +74,7 @@ void setLEDColor(uint32_t color) {
 void displaySensorData() {
   auto& display = M5.Display;
   display.setTextSize(1);
+  display.startWrite();
   display.fillScreen(TFT_BLACK);
   display.setTextColor(TFT_WHITE, TFT_BLACK);
   
@@ -124,6 +126,8 @@ void displaySensorData() {
   display.setTextColor(TFT_CYAN);
   display.print("Last: ");
   display.println(millis() / 1000);
+
+  display.endWrite();
 }
 
 // ===== センサー読み込み関数 =====
@@ -262,7 +266,7 @@ void loop() {
   if (M5.BtnA.wasPressed()) {
     // ボタン押下時は即座に計測を実行
     M5_LOGI("Button pressed! Reading sensor now...");
-    lastReadTime = 0; // 次の計測をすぐに実行
+    lastReadTime = currentTime - INTERVAL_MS; // 次の計測をすぐに実行。連打バグ防止
     
     // LED: 黄色点灯
     setLEDColor(0xFFFF00);
