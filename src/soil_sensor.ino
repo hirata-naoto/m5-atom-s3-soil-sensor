@@ -33,7 +33,7 @@
 #define RS485_TXE_PIN 7             // DE ピン
 
 // Modbusレジスタアドレス
-#define REG_MOISTURE 0x0000        // 土���水分 (0-100%)
+#define REG_MOISTURE 0x0000        // 土壌水分 (0-100%)
 #define REG_TEMPERATURE 0x0001     // 温度 (-10 ~ +60°C)
 #define REG_EC 0x0002              // EC値 (0-20 mS/cm)
 #define REG_PH 0x0003              // pH値 (0-14)
@@ -58,6 +58,7 @@ void preTransmission() {
 }
 
 void postTransmission() {
+    Serial1.flush();
     digitalWrite(RS485_TXE_PIN, LOW);   // RS485ドライバを受信モードに設定
 }
 
