@@ -115,3 +115,23 @@ class ModbusRTU:
             print(f"[FC06] スレーブ {slave} のレジスタ書き込み成功:")
             print(f"  レジスタ 0x{resp_addr:04X} ({resp_addr:5d}) <- 0x{resp_val:04X} / {resp_val:5d}")
         print("-----------------------\n")
+
+"""
+from machine import UART, Pin
+
+# 1. ハードウェアの準備
+uart1 = UART(1, baudrate=9600, tx=Pin(5), rx=Pin(6), timeout=10)
+de = Pin(7)
+
+# 2. Modbusインスタンスを作成（ここでUARTとDEピンを紐付ける）
+modbus = ModbusRTU(uart0, de_pin=de)
+
+
+# ---- あとはスッキリ対話型実行！ ----
+
+# レジスタ読み出し (FC03)
+modbus.execute(slave=1, fc=3, address=0x0010, value_or_len=3)
+
+# レジスタ書き込み (FC06)
+modbus.execute(slave=1, fc=6, address=0x0012, value_or_len=555)
+"""
