@@ -3,17 +3,16 @@ import time
 import struct
 
 class ModbusRTU:
-    def __init__(self, uart: machine.UART, de_pin: machine.Pin = None):
-        """
-        uart: 初期化済みのUARTオブジェクト
-        de_pin: DE/REを制御する machine.Pin オブジェクト (省略時はRS-232C等の標準UARTとして動作)
-        """
-        self.uart = uart
-        self.de_pin = de_pin
+    def __init__(self, uart_id: int, baudrate: int = 9600,
+                 tx: int = None, rx: int = None, de_pin: int = None):
         
+        self.baudrate = baudrate  # 送信待ち計算に使える
+        self.uart = machine.UART(uart_id, baudrate=baudrate,
+                                 tx=machine.Pin(tx), rx=machine.Pin(rx),
+                                 timeout=10)
+
         # DEピンがある場合は初期状態を受信モード(Low)にする
-        if self.de_pin:
-            self.de_pin.init(mode=machine.Pin.OUT, value=0)
+        self.de_pin = machine.Pin(de_pin, machine.Pin.OUT, value=0) if de_pin is not None else None
 
     def _crc16(self, data: bytes) -> int:
         """内部用: CRC16計算"""
@@ -45,7 +44,7 @@ class ModbusRTU:
                 pass
         else:
             # 9600bps基準のおおよその安全マージン待ち (1バイト≒1.1ms)
-            time.sleep_ms(int((len(request) * 11 / 9600) * 1000) + 2)
+            time.sleep_ms(int((len(request) * 11 / self.baudrate) * 1000) + 2)
 
         if self.de_pin:
             self.de_pin.value(0)  # 受信モードに戻す
@@ -117,14 +116,8 @@ class ModbusRTU:
         print("-----------------------\n")
 
 """
-from machine import UART, Pin
-
 # 1. ハードウェアの準備
-uart1 = UART(1, baudrate=9600, tx=Pin(5), rx=Pin(6), timeout=10)
-de = Pin(7)
-
-# 2. Modbusインスタンスを作成（ここでUARTとDEピンを紐付ける）
-modbus = ModbusRTU(uart0, de_pin=de)
+modbus = ModbusRTU(uart_id=1, baudrate=9600, tx=5, rx=6, de_pin=7)
 
 
 # ---- あとはスッキリ対話型実行！ ----
