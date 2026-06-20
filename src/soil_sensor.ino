@@ -43,7 +43,8 @@
 #define REG_POTASSIUM 0x0020       // カリウム (K) mg/kg
 
 // ===== グローバル変数 =====
-ModbusMaster node;                 // 1つのノードインスタンスをアドレスを切り替えて使い回します
+ModbusMaster node4in1;             // SENS0604 用
+ModbusMaster nodeNPK;              // SEN0605 用
 unsigned long lastReadTime = 0;
 
 // SENS0604 データ構造体
@@ -70,7 +71,7 @@ void preTransmission() {
 
 void postTransmission() {
     Serial1.flush();
-    delay(2);
+    delay(5);
     digitalWrite(RS485_TXE_PIN, LOW);    // RS485ドライバを受信モードに設定
 }
 
@@ -133,16 +134,13 @@ void displaySensorData() {
 
 // ===== SENS0604 読み込み関数 =====
 bool readSENS0604() {
-  node.begin(ADDR_SOIL_4IN1, Serial1); // 対象のアドレスに切り替え
-  delay(10); // 安定のためのわずかなウエイト
-  
-  uint8_t result = node.readHoldingRegisters(REG_MOISTURE, 4);
-  
-  if (result == node.ku8MBSuccess) {
-    data4in1.moisture = node.getResponseBuffer(0) / 10.0;
-    data4in1.temperature = ((int16_t)node.getResponseBuffer(1)) / 10.0;
-    data4in1.ec = node.getResponseBuffer(2) / 10.0;
-    data4in1.ph = node.getResponseBuffer(3) / 10.0;
+  uint8_t result = node4in1.readHoldingRegisters(REG_MOISTURE, 4);
+
+  if (result == node4in1.ku8MBSuccess) {
+    data4in1.moisture    = node4in1.getResponseBuffer(0) / 10.0;
+    data4in1.temperature = ((int16_t)node4in1.getResponseBuffer(1)) / 10.0;
+    data4in1.ec          = node4in1.getResponseBuffer(2) / 10.0;
+    data4in1.ph          = node4in1.getResponseBuffer(3) / 10.0;
     data4in1.success = true;
     return true;
   } else {
@@ -153,16 +151,12 @@ bool readSENS0604() {
 
 // ===== SEN0605 (NPK) 読み込み関数 =====
 bool readSEN0605() {
-  node.begin(ADDR_SOIL_NPK, Serial1); // 対象のアドレスに切り替え
-  delay(10);
-  
-  // 0x001E(N) から 3つのレジスタ(N, P, K)を読み出す
-  uint8_t result = node.readHoldingRegisters(REG_NITROGEN, 3);
-  
-  if (result == node.ku8MBSuccess) {
-    dataNPK.nitrogen   = node.getResponseBuffer(0); // 窒素
-    dataNPK.phosphorus = node.getResponseBuffer(1); // リン
-    dataNPK.potassium  = node.getResponseBuffer(2); // カリウム
+  uint8_t result = nodeNPK.readHoldingRegisters(REG_NITROGEN, 3);
+
+  if (result == nodeNPK.ku8MBSuccess) {
+    dataNPK.nitrogen   = nodeNPK.getResponseBuffer(0);
+    dataNPK.phosphorus = nodeNPK.getResponseBuffer(1);
+    dataNPK.potassium  = nodeNPK.getResponseBuffer(2);
     dataNPK.success = true;
     return true;
   } else {
@@ -211,11 +205,16 @@ void setup() {
   Serial1.begin(SERIAL_BAUD, SERIAL_8N1, RS485_RX_PIN, RS485_TX_PIN);
   pinMode(RS485_TXE_PIN, OUTPUT);
   digitalWrite(RS485_TXE_PIN, LOW);
-
-  // ModbusMasterのコールバック設定
-  node.preTransmission(preTransmission);
-  node.postTransmission(postTransmission);
   
+  // 各ノードを個別初期化 ----
+  node4in1.begin(ADDR_SOIL_4IN1, Serial1);
+  node4in1.preTransmission(preTransmission);
+  node4in1.postTransmission(postTransmission);
+
+  nodeNPK.begin(ADDR_SOIL_NPK, Serial1);
+  nodeNPK.preTransmission(preTransmission);
+  nodeNPK.postTransmission(postTransmission);
+
   display.fillScreen(TFT_BLACK);
   display.setCursor(0, 0);
   display.setTextColor(TFT_BLUE);
