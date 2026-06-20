@@ -1,84 +1,105 @@
 #include <Arduino.h>
+#include <M5Unified.h>
+#include <ModbusMaster.h> // ModbusMaster ライブラリをインクルード
 
 // ----------------------------------------------------
 // 設定項目
 // ----------------------------------------------------
-#define RX_PIN 20  // M5Stamp C3U の RXピン
-#define TX_PIN 21  // M5Stamp C3U の TXピン
+#define RX_PIN  5  // 環境に合わせて調整してください
+#define TX_PIN  6  // 環境に合わせて調整してください
+#define TXE_PIN 7  // 環境に合わせて調整してください
 
-// 変更前の古いアドレス（不明な場合は 0x00 を指定すると強制変更できますが、1台接続が絶対条件です）
+// 変更前の古いアドレス（ModbusMasterノードオブジェクトの初期化に使用）
 const uint8_t OLD_ADDRESS = 0x01; 
 
-// 変更後の新しいアドレス（例として 0x02 に変更）
+// 変更後の新しいアドレス
 const uint8_t NEW_ADDRESS = 0x02; 
 
-// ----------------------------------------------------
-// センサー通信用シリアル設定
-// ----------------------------------------------------
-HardwareSerial SensorSerial(1); // 任意のシリアルチャンネル
+// アドレス書き込み用のレジスタアドレス (0x07D0 = 十進数で 2000)
+const uint16_t REG_ADDRESS = 0x07D0; 
 
-// CRC16 (Modbus RTU) 計算関数
-uint16_t calculateCRC(uint8_t *buf, int len) {
-  uint16_t crc = 0xFFFF;
-  for (int pos = 0; pos < len; pos++) {
-    crc ^= (uint16_t)buf[pos];
-    for (int i = 8; i != 0; i--) {
-      if ((crc & 0x0001) != 0) {
-        crc >>= 1;
-        crc ^= 0xA001;
-      } else {
-        crc >>= 1;
-      }
-    }
-  }
-  return crc;
+// ----------------------------------------------------
+// 通信インスタンス設定
+// ----------------------------------------------------
+HardwareSerial SensorSerial(1);
+ModbusMaster node;
+
+// ===== RS485プリ/ポストトランスミッション制御 =====
+void preTransmission() {
+    digitalWrite(TXE_PIN, HIGH);   // RS485ドライバを送信モードに設定
+}
+
+void postTransmission() {
+    SensorSerial.flush();
+    delay(6);
+    digitalWrite(TXE_PIN, LOW);    // RS485ドライバを受信モードに設定
 }
 
 void setup() {
+  // M5Unifiedの初期化
+  auto cfg = M5.config();
+  M5.begin(cfg);
+
+  // 画面の初期設定
+  M5.Log.setLogLevel(m5::log_target_display, m5::esp_log_level_t::ESP_LOG_NONE);
+  M5.Display.setRotation(2);
+  M5.Display.setFont(&fonts::Font0);
+  M5.Display.setTextSize(1.5);
+  
+  M5.Display.clear(BLACK);
+  M5.Display.setTextColor(GREEN);
+  M5.Display.println("ModbusMaster Config");
+  M5.Display.println("-----------------");
+
   // PCモニター用シリアル
   Serial.begin(115200);
-  delay(2000);
-  Serial.println("\n--- SEN0605 アドレス設定プログラム ---");
+  delay(500);
+  Serial.println("\n--- SEN0605 Address Configurator (ModbusMaster) ---");
 
-  // センサー通信用シリアル初期化 (SEN0605のデフォルト：9600bps, 8N1)
+  // センサー通信用シリアル初期化
   SensorSerial.begin(9600, SERIAL_8N1, RX_PIN, TX_PIN);
+
+  // ModbusMasterにシリアル通信と初期（変更前）のSlave IDを設定
+  node.begin(OLD_ADDRESS, SensorSerial);
+  pinMode(TXE_PIN, OUTPUT);
+  digitalWrite(TXE_PIN, LOW);
+
+  // ModbusMasterのコールバック設定
+  node.preTransmission(preTransmission);
+  node.postTransmission(postTransmission);
   
-  // Modbus アドレス書き込みコマンドフレームの生成
-  // SEN0605のアドレス保持レジスタ（通常 0x0100 または 0x0000、仕様に準拠）
-  // 多くのRS485センサーは 0x0000 への単一レジスタ書き込み(0x06)でアドレスを保持します
-  uint8_t cmd[8] = {
-    OLD_ADDRESS, // 現在のアドレス (または 0x00)
-    0x06,        // ファンクションコード: Write Single Register
-    0x07, 0xd0,  // レジスタアドレス (アドレス変更用のレジスタ：通常0x0000)
-    0x00, NEW_ADDRESS, // 書き込む新しいアドレス値
-    0x00, 0x00   // CRC (後で計算)
-  };
+  // 画面とシリアルへ送信開始を表示
+  Serial.printf("Changing Address: 0x%02X -> 0x%02X ...\n", OLD_ADDRESS, NEW_ADDRESS);
+  M5.Display.setTextColor(YELLOW);
+  M5.Display.printf("Changing Addr:\n0x%02X -> 0x%02X\n\n", OLD_ADDRESS, NEW_ADDRESS);
+  M5.Display.println("Sending Modbus cmd...");
 
-  // CRCの計算とセット
-  uint16_t crc = calculateCRC(cmd, 6);
-  cmd[6] = crc & 0xFF;        // 低位バイト
-  cmd[7] = (crc >> 8) & 0xFF; // 高位バイト
+  // Write Single Register (Function Code 0x06) を実行
+  // 指定したレジスタ(0x07D0)に、新しいアドレス値を書き込みます
+  uint8_t result = node.writeSingleRegister(REG_ADDRESS, NEW_ADDRESS);
 
-  // コマンドの送信
-  Serial.printf("アドレスを変更中: 0x%02X -> 0x%02X ...\n", OLD_ADDRESS, NEW_ADDRESS);
-  SensorSerial.write(cmd, 8);
-  SensorSerial.flush();
+  // 結果の判定 (ku8MBSuccess = 0x00 が成功)
+  if (result == node.ku8MBSuccess) {
+    Serial.println("Response: Success!");
+    Serial.println("Configuration command sent successfully.");
+    Serial.println("Please power cycle the sensor to apply changes.");
 
-  // レスポンスの待機と受信
-  delay(500); 
-  if (SensorSerial.available()) {
-    Serial.print("センサーからの応答: ");
-    while (SensorSerial.available()) {
-      uint8_t res = SensorSerial.read();
-      Serial.printf("%02X ", res);
-    }
-    Serial.println("\n設定コマンドの送信が完了しました。");
-    Serial.println("センサーの電源を再投入して、新しいアドレスで通信できるか確認してください。");
+    M5.Display.setTextColor(GREEN);
+    M5.Display.println("\n[SUCCESS]");
+    M5.Display.println("Result: OK");
+    M5.Display.println("\nPower cycle\nthe sensor!");
   } else {
-    Serial.println("エラー: センサーからの応答がありません。配線や電源、ピン番号を確認してください。");
+    // 失敗した場合はエラーコードを表示
+    Serial.printf("Error: Modbus communication failed. Error Code: 0x%02X\n", result);
+    Serial.println("Check wiring, power, and pins.");
+
+    M5.Display.setTextColor(RED);
+    M5.Display.println("\n[ERROR]");
+    M5.Display.printf("Err Code: 0x%02X\n", result);
+    M5.Display.println("Check wiring\nand power.");
   }
 }
 
 void loop() {
-  // 処理は一度だけ実行するため、ループ内は空です
+  M5.update();
 }
