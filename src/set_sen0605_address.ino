@@ -58,11 +58,11 @@ void setup() {
 
   // センサー通信用シリアル初期化
   SensorSerial.begin(9600, SERIAL_8N1, RX_PIN, TX_PIN);
-
-  // ModbusMasterにシリアル通信と初期（変更前）のSlave IDを設定
-  node.begin(OLD_ADDRESS, SensorSerial);
   pinMode(TXE_PIN, OUTPUT);
   digitalWrite(TXE_PIN, LOW);
+    
+  // ModbusMasterにシリアル通信と初期（変更前）のSlave IDを設定
+  node.begin(OLD_ADDRESS, SensorSerial);
 
   // ModbusMasterのコールバック設定
   node.preTransmission(preTransmission);
@@ -77,6 +77,7 @@ void setup() {
   // Write Single Register (Function Code 0x06) を実行
   // 指定したレジスタ(0x07D0)に、新しいアドレス値を書き込みます
   uint8_t result = node.writeSingleRegister(REG_ADDRESS, NEW_ADDRESS);
+  delay(100);  // セッション応答時間待ち
 
   // 結果の判定 (ku8MBSuccess = 0x00 が成功)
   if (result == node.ku8MBSuccess) {
