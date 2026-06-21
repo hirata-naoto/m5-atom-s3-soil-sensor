@@ -89,9 +89,18 @@ void setup() {
     // Holding Register読み込みを試行
     uint8_t result = node.readHoldingRegisters(PROBE_REGISTER, REGISTER_COUNT);
 
-    if (result == node.ku8MBSuccess) {
+    // 成功または不正レジスタアドレスなら「デバイスあり」とみなす
+    bool devicePresent =
+        (result == node.ku8MBSuccess) ||
+        (result == node.ku8MBIllegalDataAddress);
+
+    if (devicePresent) {
       foundCount++;
-      Serial.printf("✓ Device found at address: 0x%02X\n", address);
+      if (result == node.ku8MBSuccess) {
+        Serial.printf("✓ Device found at address: 0x%02X\n", address);
+      } else {
+        Serial.printf("✓ Device found at address: 0x%02X (Illegal register address)\n", address);
+      }
       M5.Display.setTextColor(GREEN);
       M5.Display.printf("  0x%02X\n", address);
       delay(SCAN_INTERVAL);
