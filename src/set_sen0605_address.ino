@@ -77,18 +77,52 @@ void setup() {
   // Write Single Register (Function Code 0x06) を実行
   // 指定したレジスタ(0x07D0)に、新しいアドレス値を書き込みます
   uint8_t result = node.writeSingleRegister(REG_ADDRESS, NEW_ADDRESS);
-  delay(100);  // セッション応答時間待ち
+  delay(100);  // センサー応答時間待ち
 
   // 結果の判定 (ku8MBSuccess = 0x00 が成功)
   if (result == node.ku8MBSuccess) {
     Serial.println("Response: Success!");
     Serial.println("Configuration command sent successfully.");
-    Serial.println("Please power cycle the sensor to apply changes.");
+    Serial.println("Verifying new address by reading the same register...");
 
     M5.Display.setTextColor(GREEN);
     M5.Display.println("\n[SUCCESS]");
-    M5.Display.println("Result: OK");
-    M5.Display.println("\nPower cycle\nthe sensor!");
+    M5.Display.println("Write: OK");
+    M5.Display.println("Verifying...");
+
+    delay(200);
+
+    // 新しいアドレスで再初期化して、設定レジスタを読み返して確認
+    node.begin(NEW_ADDRESS, SensorSerial);
+    uint8_t verifyResult = node.readHoldingRegisters(REG_ADDRESS, 1);
+
+    if (verifyResult == node.ku8MBSuccess) {
+      uint16_t readBackAddress = node.getResponseBuffer(0);
+      Serial.printf("Read back register 0x%04X = 0x%04X\n", REG_ADDRESS, readBackAddress);
+
+      if ((readBackAddress & 0x00FF) == NEW_ADDRESS) {
+        Serial.printf("Verification OK: address changed to 0x%02X\n", NEW_ADDRESS);
+        Serial.println("Please power cycle the sensor to apply changes.");
+
+        M5.Display.setTextColor(GREEN);
+        M5.Display.println("Verify: OK");
+        M5.Display.printf("Addr=0x%02X\n", NEW_ADDRESS);
+        M5.Display.println("Power cycle\nthe sensor!");
+      } else {
+        Serial.printf("Verification NG: expected 0x%02X but got 0x%02X\n", NEW_ADDRESS, readBackAddress & 0x00FF);
+
+        M5.Display.setTextColor(RED);
+        M5.Display.println("Verify: NG");
+        M5.Display.printf("Read=0x%02X\n", readBackAddress & 0x00FF);
+      }
+    } else {
+      Serial.printf("Verification failed. Error Code: 0x%02X\n", verifyResult);
+      Serial.println("The address may have changed, but readback using the new address failed.");
+
+      M5.Display.setTextColor(RED);
+      M5.Display.println("Verify: ERR");
+      M5.Display.printf("Err=0x%02X\n", verifyResult);
+    }
   } else {
     // 失敗した場合はエラーコードを表示
     Serial.printf("Error: Modbus communication failed. Error Code: 0x%02X\n", result);
