@@ -41,7 +41,7 @@ void setup() {
   M5.begin(cfg);
 
   // 画面の初期設定
-  M5.Log.setLogLevel(m5::log_target_display, m5::esp_log_level_t::ESP_LOG_NONE);
+  M5.Log.setLogLevel(m5::log_target_display, ESP_LOG_NONE);
   M5.Display.setRotation(2);
   M5.Display.setFont(&fonts::Font0);
   M5.Display.setTextSize(1.5);
