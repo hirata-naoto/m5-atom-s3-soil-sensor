@@ -94,6 +94,9 @@ void setup() {
 
     // 新しいアドレスで再初期化して、設定レジスタを読み返して確認
     node.begin(NEW_ADDRESS, SensorSerial);
+    node.preTransmission(preTransmission);
+    node.postTransmission(postTransmission);
+  
     uint8_t verifyResult = node.readHoldingRegisters(REG_ADDRESS, 1);
 
     if (verifyResult == node.ku8MBSuccess) {
